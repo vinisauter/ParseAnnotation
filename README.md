@@ -158,7 +158,8 @@ allprojects {
 ```
 
 Add the dependency
-[![](https://jitpack.io/v/parse-community/Parse-SDK-Android.svg)](https://jitpack.io/#parse-community/Parse-SDK-Android)
+
+parseVersion: [![](https://jitpack.io/v/parse-community/Parse-SDK-Android.svg)](https://jitpack.io/#parse-community/Parse-SDK-Android)
 ```groovy
 dependencies {
     implementation "com.github.parse-community.Parse-SDK-Android:parse:${parseVersion}"
