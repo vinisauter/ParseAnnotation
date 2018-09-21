@@ -146,7 +146,27 @@ It can just case some unexpected method names (it depends on the `quava` methods
 Including In Your Project
 -------------------------
 
-//TODO: 
+Add it in your root build.gradle at the end of repositories:
+
+```groovy
+allprojects {
+	repositories {
+        ...
+        maven { url "https://jitpack.io" }
+    }
+}
+```
+
+Add the dependency
+[![](https://jitpack.io/v/parse-community/Parse-SDK-Android.svg)](https://jitpack.io/#parse-community/Parse-SDK-Android)
+```groovy
+dependencies {
+    implementation "com.github.parse-community.Parse-SDK-Android:parse:${parseVersion}"
+
+    implementation 'com.github.vinisauter.ParseAnnotation:parse-annotation:master-SNAPSHOT'
+    annotationProcessor 'com.github.vinisauter.ParseAnnotation:parse-processor:master-SNAPSHOT'
+}
+```
 
 Developed by
 ============
