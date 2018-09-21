@@ -1,4 +1,8 @@
+apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: 'java-library'
+
+group = 'com.github.vinisauter.ParseAnnotation'
+version = '1.0'
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
