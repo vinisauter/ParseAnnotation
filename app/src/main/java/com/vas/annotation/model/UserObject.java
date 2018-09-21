@@ -7,7 +7,7 @@ import com.parse.annotation.BindParseObject;
 /**
  * Created by user on 19/09/2018.
  */
-@BindParseObject("User")
+@BindParseObject
 public class UserObject extends ParseUser {
-    ParseFile photo;
+    ParseFile userPhoto;
 }

@@ -31,6 +31,7 @@ public class BindParseProcessor extends AbstractProcessor {
     private Filer filer;
     private Messager messager;
     private Elements elements;
+    private SourceVersion sourceVersion;
 
     @Override
     public synchronized void init(ProcessingEnvironment processingEnvironment) {
@@ -38,47 +39,30 @@ public class BindParseProcessor extends AbstractProcessor {
         filer = processingEnvironment.getFiler();
         messager = processingEnvironment.getMessager();
         elements = processingEnvironment.getElementUtils();
+        sourceVersion = processingEnvironment.getSourceVersion();
     }
 
-    /**
-     * public Object get(String key)
-     * public String getString(String key)
-     * public byte[] getBytes(String key)
-     * public Number getNumber(String key)
-     * public JSONArray getJSONArray(String key)
-     * public <T> List<T> getList(String key)
-     * public <V> Map<String, V> getMap(String key)
-     * public JSONObject getJSONObject(String key)
-     * public int getInt(String key)
-     * public double getDouble(String key)
-     * public long getLong(String key)
-     * public boolean getBoolean(String key)
-     * public Date getDate(String key)
-     * public ParseObject getParseObject(String key)
-     * public ParseUser getParseUser(String key)
-     * public ParseFile getParseFile(String key)
-     * public ParseGeoPoint getParseGeoPoint(String key)
-     * public ParsePolygon getParsePolygon(String key)
-     * public <T extends ParseObject> ParseRelation<T> getRelation(String key)
-     */
     @Override
     public boolean process(Set<? extends TypeElement> set, RoundEnvironment roundEnvironment) {
+        System.out.printf("\n-----------BindParseObject_START-----------");
         Set<ClassName> classNames = new HashSet<>();
         // 1- Find all annotated element
         for (Element elementBase : roundEnvironment.getElementsAnnotatedWith(BindParseObject.class)) {
-             String pack = Utils.getPackage(elementBase).toString();
+            String pack = Utils.getPackage(elementBase).toString();
             String name = elementBase.getSimpleName().toString();
             try {
                 String generatedClassName = name + "_";
                 ClassName className = ClassName.get(pack, generatedClassName);
                 classNames.add(className);
                 // 2- Generate a class
-                ParseObjectGenerator.generateClass(filer, elementBase, className);
+                ParseObjectGenerator.generateClass(processingEnv, filer, elementBase, className);
             } catch (FilerException ignore) {
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
+
+        System.out.printf("\n------------BindParseObject_END------------");
 
         try {
             TypeSpec.Builder appClass = TypeSpec
@@ -105,6 +89,7 @@ public class BindParseProcessor extends AbstractProcessor {
             e.printStackTrace();
         }
 
+        System.out.printf("\n");
         return true;
     }
 

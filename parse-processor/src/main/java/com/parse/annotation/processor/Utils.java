@@ -1,5 +1,8 @@
 package com.parse.annotation.processor;
 
+import com.squareup.javapoet.ClassName;
+
+import java.text.MessageFormat;
 import java.util.List;
 
 import javax.lang.model.element.Element;
@@ -13,6 +16,7 @@ import javax.lang.model.type.TypeMirror;
  * Created by user on 20/09/2018.
  */
 
+@SuppressWarnings({"unused", "WeakerAccess"})
 public class Utils {
     public static PackageElement getPackage(Element element) {
         while (element.getKind() != ElementKind.PACKAGE) {
@@ -55,5 +59,24 @@ public class Utils {
         } else {
             return declaredType.toString();
         }
+    }
+
+    public static TypeElement getSuperClass(TypeElement typeElement) {
+        if (!(typeElement.getSuperclass() instanceof DeclaredType)) return null;
+        DeclaredType declaredAncestor = (DeclaredType) typeElement.getSuperclass();
+        return (TypeElement) declaredAncestor.asElement();
+    }
+
+    public static TypeElement instanceOf(TypeElement typeElement, ClassName className) {
+        TypeElement superclass = getSuperClass(typeElement);
+        System.out.printf(MessageFormat.format(" -> {0}", superclass));
+        if (superclass != null) {
+            if (superclass.toString().equals(className.toString())) {
+                return superclass;
+            } else {
+                return instanceOf(superclass, className);
+            }
+        }
+        return null;
     }
 }

@@ -27,4 +27,6 @@ public @interface BindParseObject {
      * @return The Parse class name associated with the ParseObject subclass.
      */
     String value() default "";
+
+    CaseFormat columnCaseFormat() default CaseFormat.NONE;
 }

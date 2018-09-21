@@ -9,6 +9,7 @@ import android.widget.TextView;
 import com.parse.FindCallback;
 import com.parse.GetCallback;
 import com.parse.ParseException;
+import com.parse.ParseFile;
 import com.parse.SaveCallback;
 import com.vas.annotation.model.SampleObject_;
 
@@ -37,6 +38,8 @@ public class MainActivity extends AppCompatActivity {
         });
         sampleObject_ = new SampleObject_();
         sampleObject_.setFieldString("TESTE");
+        sampleObject_.setFieldBytes("TESTE_BYTES".getBytes());
+        sampleObject_.setFieldParseFile(new ParseFile("TESTE_FILE", "TESTE_FILE".getBytes()));
         findViewById(R.id.save).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

@@ -27,6 +27,9 @@ dependencies {
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
 
     implementation "com.github.parse-community.Parse-SDK-Android:parse:1.18.4"
+//    implementation 'com.github.vinisauter.ParseAnnotation:parse-annotation:master-SNAPSHOT'
+//    annotationProcessor 'com.github.vinisauter.ParseAnnotation:parse-processor:master-SNAPSHOT'
+
     implementation project(':parse-annotation')
     annotationProcessor project(':parse-processor')
 }

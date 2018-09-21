@@ -7,6 +7,7 @@ import com.parse.ParsePolygon;
 import com.parse.ParseRelation;
 import com.parse.ParseUser;
 import com.parse.annotation.BindParseObject;
+import com.parse.annotation.CaseFormat;
 import com.parse.annotation.Ignore;
 
 import org.json.JSONArray;
@@ -20,7 +21,7 @@ import java.util.Map;
 /**
  * Created by user on 19/09/2018.
  */
-@BindParseObject("SAMPLE_OBJECT_NAME")
+@BindParseObject(value = "SAMPLE_OBJECT_NAME", columnCaseFormat = CaseFormat.LOWER_UNDERSCORE)
 public class SampleObject extends ParseObject {
     Object field;
     String fieldString;
@@ -30,11 +31,12 @@ public class SampleObject extends ParseObject {
     List<UserObject_> fieldList;
     Map<String, UserObject_> fieldMap;
     JSONObject fieldJsonObject;
-    int fieldInt;
-    double fieldDouble;
-    long fieldLong;
-    boolean fieldBoolean;
+    Integer fieldInt;
+    Double fieldDouble;
+    Long fieldLong;
+    Boolean fieldBoolean;
     Date fieldDate;
+
     ParseObject fieldParseObject;
     ParseUser fieldParseUser;
     ParseFile fieldParseFile;

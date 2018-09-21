@@ -1,5 +1,6 @@
 package com.parse.annotation.processor;
 
+import com.google.common.base.CaseFormat;
 import com.parse.annotation.BindParseObject;
 import com.parse.annotation.Ignore;
 import com.squareup.javapoet.AnnotationSpec;
@@ -17,6 +18,7 @@ import java.util.Arrays;
 import java.util.Set;
 
 import javax.annotation.processing.Filer;
+import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Modifier;
@@ -34,25 +36,40 @@ import static javax.lang.model.element.Modifier.STATIC;
  */
 
 public class ParseObjectGenerator {
-    static void generateClass(Filer filer, Element elementBase, ClassName className) throws IOException {
+    static void generateClass(ProcessingEnvironment processingEnv, Filer filer, Element elementBase, ClassName className) throws IOException {
         String pack = Utils.getPackage(elementBase).toString();
         String name = elementBase.getSimpleName().toString();
         boolean abstractClass = elementBase.getModifiers().contains(ABSTRACT);
         BindParseObject annotation = elementBase.getAnnotation(BindParseObject.class);
         String value = annotation.value();
+        com.parse.annotation.CaseFormat caseFormat = annotation.columnCaseFormat();
         if ("".equals(value)) {
             value = name;
         }
+        TypeElement typeElement = (TypeElement) elementBase;
         System.out.printf(MessageFormat.format(
-                "\nElement{3} class: {0}.{1} value: {2} {4} ",
+                "\n{0}.{1}",
                 pack,
-                name,
-                value,
-                abstractClass ? " abstract" : "",
-                elementBase.getKind()
+                name
         ));
 
-        TypeElement typeElement = (TypeElement) elementBase;
+        Set<Modifier> baseModifiers = elementBase.getModifiers();
+        ClassName parseObjectClassName = ClassName.get("com.parse", "ParseObject");
+        System.out.printf(MessageFormat.format(
+                "\nElement {0} {1} {2} ({3}, {4}) {5}.{6}",
+                elementBase.getKind(),
+                abstractClass ? "abstract" : "-",
+                Arrays.toString(baseModifiers.toArray()),
+                value,
+                caseFormat,
+                pack,
+                name
+        ));
+        boolean isParseObject = Utils.instanceOf(typeElement, parseObjectClassName) != null; //TODO:
+        System.out.printf(" " + Arrays.toString(typeElement.getInterfaces().toArray()));
+
+//        TypeElement superClass = Utils.getSuperClass(typeElement);
+
         if (elementBase.getKind() != CLASS) {
             throw new IOException("Can only be applied to class.");
         }
@@ -69,9 +86,12 @@ public class ParseObjectGenerator {
                 .addAnnotation(
                         AnnotationSpec.builder(ClassName.get("com.parse", "ParseClassName"))
                                 .addMember("value", "$S", value)
-                                .build())
-                .superclass(TypeName.get(type))
-                .addModifiers(PUBLIC);
+                                .build());
+        if (isParseObject)
+            navigatorClass.superclass(TypeName.get(type));
+        else
+            navigatorClass.superclass(parseObjectClassName);
+        navigatorClass.addModifiers(PUBLIC);
         if (abstractClass) {
             navigatorClass.addModifiers(ABSTRACT);
         }
@@ -98,11 +118,6 @@ public class ParseObjectGenerator {
                 .addStatement("return ($N) createWithoutData(CLASS_NAME, objectId)", className.simpleName())
                 .build();
         navigatorClass.addMethod(instance);
-//        public static SampleObject_ fetch(String objectId, com.parse.GetCallback<SampleObject_> callback) {
-//            SampleObject_ object = createWithoutData(objectId);
-//            object.fetchIfNeededInBackground(callback);
-//            return object;
-//        }
 
         ClassName classGetCallback = ClassName.get("com.parse", "GetCallback");
         TypeName callbackOfClass = ParameterizedTypeName.get(classGetCallback, className);
@@ -133,16 +148,17 @@ public class ParseObjectGenerator {
             Set<Modifier> fieldModifiers = elementEnclosed.getModifiers();
             Ignore ignore = elementEnclosed.getAnnotation(Ignore.class);
             System.out.printf(MessageFormat.format(
-                    "\n    EnclosedElement {0} {1} {2} {3} {4}",
-                    Arrays.toString(fieldModifiers.toArray()),
-                    ignore != null ? "ignore" : "",
+                    "\n    EnclosedElement {0} {1} {2} {3} {4} {5}",
                     fieldKind,
+                    ignore != null ? "ignore" : " - ",
+                    Arrays.toString(fieldModifiers.toArray()),
                     elementEnclosed.getSimpleName().toString(),
-                    elementEnclosed.asType()
+                    elementEnclosed.asType(),
+                    elementEnclosed.asType().getKind().isPrimitive() ? "primitive" : ""
             ));
 
             if (elementEnclosed.getKind() == ElementKind.FIELD && ignore == null) {
-                generateField(elementEnclosed, className, navigatorClass);
+                generateField(elementEnclosed, navigatorClass, className, caseFormat, isParseObject);
             }
         }
         MethodSpec.Builder toString = MethodSpec.methodBuilder("toString")
@@ -155,49 +171,141 @@ public class ParseObjectGenerator {
 
         // 3- Write generated class to a file
         JavaFile.builder(pack, navigatorClass.build()).build().writeTo(filer);
-        System.out.printf("\n\n");
+        System.out.printf("\n");
     }
 
-    private static void generateField(Element elementEnclosed, ClassName className, TypeSpec.Builder navigatorClass) throws IOException {
+    /**
+     * public Object get(String key)
+     * public String getString(String key)
+     * public byte[] getBytes(String key)
+     * public Number getNumber(String key)
+     * public JSONArray getJSONArray(String key)
+     * public <T> List<T> getList(String key)
+     * public <V> Map<String, V> getMap(String key)
+     * public JSONObject getJSONObject(String key)
+     * public int getInt(String key)
+     * public double getDouble(String key)
+     * public long getLong(String key)
+     * public boolean getBoolean(String key)
+     * public Date getDate(String key)
+     * public ParseObject getParseObject(String key)
+     * public ParseUser getParseUser(String key)
+     * public ParseFile getParseFile(String key)
+     * public ParseGeoPoint getParseGeoPoint(String key)
+     * public ParsePolygon getParsePolygon(String key)
+     * public <T extends ParseObject> ParseRelation<T> getRelation(String key)
+     */
+    private static void generateField(Element elementEnclosed, TypeSpec.Builder navigatorClass, ClassName className, com.parse.annotation.CaseFormat caseFormat, boolean isParseObject) throws IOException {
         String fieldName = elementEnclosed.getSimpleName().toString();
-        TypeMirror typeEnclosed = elementEnclosed.asType();
-        String typeName = typeEnclosed.toString();
+        TypeMirror typeMirror = elementEnclosed.asType();
+        String typeName = typeMirror.toString();
 
-        String staticFieldName = fieldName.replaceAll("(.)(\\p{Upper})", "$1_$2").toUpperCase();
+        String staticFieldName = CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_UNDERSCORE, fieldName);
+
+        String formattedFieldName;
+        switch (caseFormat) {
+            case NONE:
+                formattedFieldName = fieldName;
+                break;
+            case LOWER_UNDERSCORE:
+                formattedFieldName = CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, fieldName);
+                break;
+            case LOWER_CAMEL:
+                formattedFieldName = CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_CAMEL, fieldName);
+                break;
+            case UPPER_CAMEL:
+                formattedFieldName = CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_CAMEL, fieldName);
+                break;
+            case UPPER_UNDERSCORE:
+                formattedFieldName = CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_UNDERSCORE, fieldName);
+                break;
+            default:
+                formattedFieldName = fieldName;
+                break;
+        }
+
         FieldSpec staticField = FieldSpec.builder(String.class, staticFieldName)
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
-                .initializer("$S", fieldName)
+                .initializer("$S", formattedFieldName)
                 .build();
         navigatorClass.addField(staticField);
 
         MethodSpec.Builder getMethod = MethodSpec
                 .methodBuilder("get" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1))
                 .addModifiers(PUBLIC)
-                .returns(TypeName.get(typeEnclosed));
-        String cName = Utils.getCanonicalName(typeEnclosed);
+                .returns(TypeName.get(typeMirror));
+        String cName = Utils.getCanonicalName(typeMirror);
         if ("com.parse.ParseRelation<?>".equals(cName)) {
-            getMethod.addStatement("super.$N = getRelation($N)", fieldName, staticFieldName);
+            getMethod.addStatement("$N value = getRelation($N)", typeName, staticFieldName);
         } else if ("java.util.List<?>".equals(cName)) {
-            getMethod.addStatement("super.$N = getList($N)", fieldName, staticFieldName);
+            getMethod.addStatement("$N value = getList($N)", typeName, staticFieldName);
         } else if ("java.util.Map<?,?>".equals(cName)) {
-            getMethod.addStatement("super.$N = getMap($N)", fieldName, staticFieldName);
+            getMethod.addStatement("$N value = getMap($N)", typeName, staticFieldName);
         } else if ("org.json.JSONObject".equals(cName)) {
-            getMethod.addStatement("super.$N = getJSONObject($N)", fieldName, staticFieldName);
+            getMethod.addStatement("$N value = getJSONObject($N)", typeName, staticFieldName);
         } else if ("org.json.JSONArray".equals(cName)) {
-            getMethod.addStatement("super.$N = getJSONArray($N)", fieldName, staticFieldName);
+            getMethod.addStatement("$N value = getJSONArray($N)", typeName, staticFieldName);
         } else {
-            getMethod.addStatement("super.$N = ($N) get($N)", fieldName, typeName, staticFieldName);
+            if (typeMirror.getKind().isPrimitive()) {
+                getMethod.addStatement("Object value = get($N)", staticFieldName);
+                getMethod.beginControlFlow("if (value == null)", typeName);
+                switch (typeName) {
+                    case "byte":
+//                        Class<Byte> clazz = Primitives.wrap(byte.class);
+                    case "short":
+//                        Class<Short> clazz = Primitives.wrap(short.class);
+                    case "int":
+//                        Class<Integer> clazz = Primitives.wrap(int.class);
+                        getMethod.addStatement("return 0");
+                        break;
+                    case "long":
+//                        Class<Long> clazz = Primitives.wrap(long.class);
+                        getMethod.addStatement("return 0l");
+                        break;
+                    case "float":
+//                        Class<Float> clazz = Primitives.wrap(float.class);
+                        getMethod.addStatement("return 0.0f");
+                        break;
+                    case "double":
+//                        Class<Double> clazz = Primitives.wrap(double.class);
+                        getMethod.addStatement("return 0.0d");
+                        break;
+                    case "char":
+//                        Class<Character> clazz = Primitives.wrap(char.class);
+                        getMethod.addStatement("return \t'\\u0000'");
+                        break;
+                    case "boolean":
+//                        Class<Boolean> clazz = Primitives.wrap(boolean.class);
+                        getMethod.addStatement("return false");
+                        break;
+                    default:
+                        getMethod.addStatement("return null");
+                }
+                getMethod.endControlFlow();
+            } else {
+                getMethod.addStatement("Object value = get($N)", staticFieldName);
+                getMethod.beginControlFlow("if (!(value instanceof $N))", typeName);
+                getMethod.addStatement("return null");
+                getMethod.endControlFlow();
+            }
         }
-        getMethod.addStatement("return super.$N", fieldName);
+        if (isParseObject) {
+            getMethod.addStatement("super.$N = ($N) value", fieldName, typeName);
+        }
+        getMethod.addStatement("return ($N) value", typeName);
+
         navigatorClass.addMethod(getMethod.build());
 
         MethodSpec.Builder setMethod = MethodSpec
                 .methodBuilder("set" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1))
                 .addModifiers(PUBLIC)
                 .returns(className)
-                .addParameter(TypeName.get(typeEnclosed), fieldName)
-                .addStatement("super.$N = $N", fieldName, fieldName)
-                .addStatement("put($N, $N)", staticFieldName, fieldName)
+                .addParameter(TypeName.get(typeMirror), fieldName);
+
+        if (isParseObject)
+            setMethod.addStatement("super.$N = $N", fieldName, fieldName);
+
+        setMethod.addStatement("put($N, $N)", staticFieldName, fieldName)
                 .addStatement("return this");
         navigatorClass.addMethod(setMethod.build());
 
