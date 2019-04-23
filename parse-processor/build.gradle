@@ -2,7 +2,7 @@ apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: 'java-library'
 
 group = 'com.github.vinisauter.ParseAnnotation'
-version = '1.0'
+version = '1.01'
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
@@ -10,6 +10,3 @@ dependencies {
     implementation 'com.squareup:javapoet:1.9.0'
     implementation 'com.google.guava:guava:26.0-jre'
 }
-
-sourceCompatibility = "1.8"
-targetCompatibility = "1.8"
