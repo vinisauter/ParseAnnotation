@@ -15,31 +15,26 @@ import java.util.Set;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Filer;
 import javax.annotation.processing.FilerException;
-import javax.annotation.processing.Messager;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
-import javax.lang.model.util.Elements;
 
+import static com.parse.annotation.processor.Utils.logInfo;
 import static javax.lang.model.element.Modifier.FINAL;
 import static javax.lang.model.element.Modifier.PUBLIC;
 import static javax.lang.model.element.Modifier.STATIC;
 
 public class BindParseProcessor extends AbstractProcessor {
     private Filer filer;
-    private Messager messager;
-    private Elements elements;
-    private SourceVersion sourceVersion;
+    static ProcessingEnvironment pEnvironment;
 
     @Override
     public synchronized void init(ProcessingEnvironment processingEnvironment) {
         super.init(processingEnvironment);
-        filer = processingEnvironment.getFiler();
-        messager = processingEnvironment.getMessager();
-        elements = processingEnvironment.getElementUtils();
-        sourceVersion = processingEnvironment.getSourceVersion();
+        this.filer = processingEnvironment.getFiler();
+        pEnvironment = processingEnvironment;
     }
 
     @Override
@@ -54,7 +49,7 @@ public class BindParseProcessor extends AbstractProcessor {
     }
 
     private void process(RoundEnvironment roundEnvironment) {
-        System.out.printf("\n-----------BindParseObject_START-----------");
+        logInfo("-----------BindParseObject_START-----------");
         Set<ClassName> classNames = new HashSet<>();
         // 1- Find all annotated element
         for (Element elementBase : roundEnvironment.getElementsAnnotatedWith(BindParseObject.class)) {
@@ -72,7 +67,7 @@ public class BindParseProcessor extends AbstractProcessor {
             }
         }
 
-        System.out.printf("\n------------BindParseObject_END------------");
+        logInfo("------------BindParseObject_END------------");
 
         try {
             TypeSpec.Builder appClass = TypeSpec
@@ -98,8 +93,6 @@ public class BindParseProcessor extends AbstractProcessor {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        System.out.printf("\n");
     }
 
     @Override

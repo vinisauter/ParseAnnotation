@@ -25,6 +25,7 @@ import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
 
+import static com.parse.annotation.processor.Utils.logInfo;
 import static javax.lang.model.element.ElementKind.CLASS;
 import static javax.lang.model.element.Modifier.ABSTRACT;
 import static javax.lang.model.element.Modifier.PRIVATE;
@@ -47,29 +48,26 @@ public class ParseObjectGenerator {
             value = name;
         }
         TypeElement typeElement = (TypeElement) elementBase;
-        System.out.printf(MessageFormat.format(
-                "\n{0}.{1}",
+        logInfo(MessageFormat.format(
+                "{0}.{1}",
                 pack,
                 name
         ));
 
         Set<Modifier> baseModifiers = elementBase.getModifiers();
         ClassName parseObjectClassName = ClassName.get("com.parse", "ParseObject");
-        System.out.printf(MessageFormat.format(
-                "\nElement {0} {1} {2} ({3}, {4}) {5}.{6}",
+        logInfo(MessageFormat.format(
+                "Element {0} {1} {2} ({3}, {4}) {5}.{6} {7}",
                 elementBase.getKind(),
                 abstractClass ? "abstract" : "-",
                 Arrays.toString(baseModifiers.toArray()),
                 value,
                 caseFormat,
                 pack,
-                name
+                name,
+                Arrays.toString(typeElement.getInterfaces().toArray())
         ));
-        boolean isParseObject = Utils.instanceOf(typeElement, parseObjectClassName) != null; //TODO:
-        System.out.printf(" " + Arrays.toString(typeElement.getInterfaces().toArray()));
-
-//        TypeElement superClass = Utils.getSuperClass(typeElement);
-
+        boolean isParseObject = Utils.instanceOf(typeElement, "com.parse.ParseObject");
         if (elementBase.getKind() != CLASS) {
             throw new IOException("Can only be applied to class.");
         }
@@ -147,18 +145,18 @@ public class ParseObjectGenerator {
             ElementKind fieldKind = elementEnclosed.getKind();
             Set<Modifier> fieldModifiers = elementEnclosed.getModifiers();
             Ignore ignoreAnnotation = elementEnclosed.getAnnotation(Ignore.class);
-            boolean ignore = ignoreAnnotation == null && !elementEnclosed.getModifiers().contains(PRIVATE);
-            System.out.printf(MessageFormat.format(
-                    "\n    EnclosedElement {0} {1} {2} {3} {4} {5}",
+            boolean canGenerate = ignoreAnnotation == null && !elementEnclosed.getModifiers().contains(PRIVATE);
+            logInfo(MessageFormat.format(
+                    "    EnclosedElement {0} {1} {2} {3} {4} {5}",
+                    canGenerate ? "generate" : "ignore",
                     fieldKind,
-                    "ignore " + ignore,
                     Arrays.toString(fieldModifiers.toArray()),
                     elementEnclosed.getSimpleName().toString(),
                     elementEnclosed.asType(),
                     elementEnclosed.asType().getKind().isPrimitive() ? "primitive" : ""
             ));
 
-            if (elementEnclosed.getKind() == ElementKind.FIELD && ignore) {
+            if (elementEnclosed.getKind() == ElementKind.FIELD && canGenerate) {
                 generateField(elementEnclosed, navigatorClass, className, caseFormat, isParseObject);
             }
         }
@@ -172,7 +170,6 @@ public class ParseObjectGenerator {
 
         // 3- Write generated class to a file
         JavaFile.builder(pack, navigatorClass.build()).build().writeTo(filer);
-        System.out.printf("\n");
     }
 
     /**
