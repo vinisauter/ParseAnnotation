@@ -1,6 +1,5 @@
 # ParseAnnotation
 [![](https://jitpack.io/v/vinisauter/ParseAnnotation.svg)](https://jitpack.io/#vinisauter/ParseAnnotation)
-
 [![License](https://img.shields.io/github/license/blipinsk/RecyclerViewHeader.svg?style=flat)](https://www.apache.org/licenses/LICENSE-2.0)
 ---
 
