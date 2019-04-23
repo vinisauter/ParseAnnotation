@@ -146,18 +146,19 @@ public class ParseObjectGenerator {
         for (Element elementEnclosed : elementBase.getEnclosedElements()) {
             ElementKind fieldKind = elementEnclosed.getKind();
             Set<Modifier> fieldModifiers = elementEnclosed.getModifiers();
-            Ignore ignore = elementEnclosed.getAnnotation(Ignore.class);
+            Ignore ignoreAnnotation = elementEnclosed.getAnnotation(Ignore.class);
+            boolean ignore = ignoreAnnotation == null && !elementEnclosed.getModifiers().contains(PRIVATE);
             System.out.printf(MessageFormat.format(
                     "\n    EnclosedElement {0} {1} {2} {3} {4} {5}",
                     fieldKind,
-                    ignore != null ? "ignore" : " - ",
+                    "ignore " + ignore,
                     Arrays.toString(fieldModifiers.toArray()),
                     elementEnclosed.getSimpleName().toString(),
                     elementEnclosed.asType(),
                     elementEnclosed.asType().getKind().isPrimitive() ? "primitive" : ""
             ));
 
-            if (elementEnclosed.getKind() == ElementKind.FIELD && ignore == null) {
+            if (elementEnclosed.getKind() == ElementKind.FIELD && ignore) {
                 generateField(elementEnclosed, navigatorClass, className, caseFormat, isParseObject);
             }
         }

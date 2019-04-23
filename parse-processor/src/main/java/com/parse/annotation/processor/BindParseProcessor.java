@@ -43,7 +43,17 @@ public class BindParseProcessor extends AbstractProcessor {
     }
 
     @Override
-    public boolean process(Set<? extends TypeElement> set, RoundEnvironment roundEnvironment) {
+    public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+        boolean claimed = (annotations.size() > 0);
+        if (claimed) {
+            process(roundEnv);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private void process(RoundEnvironment roundEnvironment) {
         System.out.printf("\n-----------BindParseObject_START-----------");
         Set<ClassName> classNames = new HashSet<>();
         // 1- Find all annotated element
@@ -90,7 +100,6 @@ public class BindParseProcessor extends AbstractProcessor {
         }
 
         System.out.printf("\n");
-        return true;
     }
 
     @Override

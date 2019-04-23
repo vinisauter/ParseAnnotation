@@ -46,6 +46,7 @@ public class SampleObject extends ParseObject {
 
     @Ignore
     public Object fieldIgnore;
+    private boolean privateIgnoredBool;
 
     public void methodVoid() {
 
